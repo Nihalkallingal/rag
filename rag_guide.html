@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hybrid RAG — Source Files</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #718096;
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --tag-bg: #e0e7ff;
+    --tag-text: #3730a3;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --kw: #cba6f7;
+    --fn: #89b4fa;
+    --str: #a6e3a1;
+    --cm: #6c7086;
+    --num: #fab387;
+    --cls: #f9e2af;
+    --dec: #89dceb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f17;
+      --surface: #1e1e2e;
+      --border: #313244;
+      --text: #cdd6f4;
+      --muted: #6c7086;
+      --accent: #89b4fa;
+      --accent-light: #1e1e3a;
+      --tag-bg: #313244;
+      --tag-text: #89b4fa;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); flex: 1; }
+  header p  { font-size: 0.85rem; color: var(--muted); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 60px);
+  }
+
+  nav {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    padding: 0.5rem 1rem 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  nav a:hover { background: var(--accent-light); border-left-color: var(--accent); }
+  nav a .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .c-core    { background: #4f46e5; }
+  .c-index   { background: #0ea5e9; }
+  .c-search  { background: #10b981; }
+  .c-llm     { background: #f59e0b; }
+  .c-api     { background: #ef4444; }
+  .c-eval    { background: #8b5cf6; }
+
+  main { padding: 2rem; display: flex; flex-direction: column; gap: 2.5rem; }
+
+  .file-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    scroll-margin-top: 80px;
+  }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .file-header .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .file-header .name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  }
+
+  .tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .file-desc {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    tab-size: 4;
+    white-space: pre;
+  }
+
+  .kw  { color: var(--kw); font-weight: 600; }
+  .fn  { color: var(--fn); }
+  .str { color: var(--str); }
+  .cm  { color: var(--cm); font-style: italic; }
+  .num { color: var(--num); }
+  .cls { color: var(--cls); font-weight: 600; }
+  .dec { color: var(--dec); }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .file-desc { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Hybrid RAG — Source Code</h1>
+  <p>13 files · Python · LangChain · Gemini</p>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-section">Core</div>
+    <a href="#chunking"><span class="dot c-core"></span>chunking.py</a>
+    <a href="#engine"><span class="dot c-core"></span>engine.py</a>
+    <a href="#gemini_client"><span class="dot c-core"></span>gemini_client.py</a>
+    <a href="#llm_utils"><span class="dot c-core"></span>llm_utils.py</a>
+
+    <div class="nav-section">Index &amp; Search</div>
+    <a href="#dense_index"><span class="dot c-index"></span>dense_index.py</a>
+    <a href="#sparse_index"><span class="dot c-index"></span>sparse_index.py</a>
+    <a href="#fusion"><span class="dot c-search"></span>fusion.py</a>
+    <a href="#rerank"><span class="dot c-search"></span>rerank.py</a>
+
+    <div class="nav-section">Generation</div>
+    <a href="#generation"><span class="dot c-llm"></span>generation.py</a>
+    <a href="#verification"><span class="dot c-llm"></span>verification.py</a>
+
+    <div class="nav-section">API &amp; Eval</div>
+    <a href="#api"><span class="dot c-api"></span>api.py</a>
+    <a href="#evaluate"><span class="dot c-eval"></span>evaluate.py</a>
+    <a href="#generate_eval"><span class="dot c-eval"></span>generate_eval.py</a>
+  </nav>
+
+  <main>
+
+    <!-- ── chunking.py ───────────────────────────── -->
+    <div class="file-card" id="chunking">
+      <div class="file-header">
+        <span class="dot c-core"></span>
+        <span class="name">chunking.py</span>
+        <span class="tag">Core</span>
+        <span class="file-desc">Loads corpus · splits documents into Chunk objects</span>
+      </div>
+      <pre><span class="cm">"""
+Step 2 — Chunking.
+
+Turns raw documents into retrieval-ready *chunks*, each carrying provenance
+metadata (source file + section header) so later steps can produce and VERIFY
+citations.
+
+Run:
+    .venv/Scripts/python.exe src/chunking.py
+"""</span>
+
+<span class="kw">from</span> __future__ <span class="kw">import</span> annotations
+
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
+<span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> MarkdownHeaderTextSplitter
+
+
+CORPUS_DIR = Path(__file__).resolve().parent.parent / <span class="str">"data"</span> / <span class="str">"corpus"</span>
+
+CHUNK_SIZE    = <span class="num">800</span>
+CHUNK_OVERLAP = <span class="num">120</span>
+
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">Chunk</span>:
+    <span class="cm">"""One retrieval unit. `text` will feed BOTH the dense and sparse indexes.
+    The metadata is what makes citation + verification possible later."""</span>
+    text:        str
+    source:      str          <span class="cm"># which file this came from</span>
+    chunk_index: int          <span class="cm"># position within that file</span>
+    start_char:  int          <span class="cm"># offset in the original document</span>
+    metadata:    dict = field(default_factory=dict)
+
+
+<span class="kw">def</span> <span class="fn">load_corpus</span>(corpus_dir: Path = CORPUS_DIR) -&gt; list[tuple[str, str]]:
+    <span class="cm">"""Ingestion layer: read every .md/.txt file in `corpus_dir` from disk.
+
+    Returns a list of (filename, full_text) pairs. The filename travels with the
+    text so provenance is never lost — it later becomes the citation label.
+    """</span>
+    corpus = []
+    <span class="kw">for</span> path <span class="kw">in</span> corpus_dir.glob(<span class="str">"*"</span>):
+        <span class="kw">if</span> path.suffix.lower() <span class="kw">in</span> {<span class="str">".md"</span>, <span class="str">".txt"</span>}:
+            corpus.append((path.name, path.read_text(encoding=<span class="str">"utf-8"</span>)))
+    <span class="kw">return</span> corpus
+
+
+<span class="kw">def</span> <span class="fn">chunk_document</span>(filename: str, text: str) -&gt; list[Chunk]:
+    <span class="cm">"""Split ONE document into retrieval-ready chunks using two-stage splitting.
+
+    Stage 1 (structure): MarkdownHeaderTextSplitter cuts on #/##/### headers.
+    Stage 2 (size): RecursiveCharacterTextSplitter further splits large sections.
+    """</span>
+    md_splitter = MarkdownHeaderTextSplitter(
+        headers_to_split_on=[(<span class="str">"#"</span>, <span class="str">"h1"</span>), (<span class="str">"##"</span>, <span class="str">"h2"</span>), (<span class="str">"###"</span>, <span class="str">"h3"</span>)])
+    md_docs = md_splitter.split_text(text)
+    char_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP, add_start_index=<span class="kw">True</span>)
+    chunks = []
+    <span class="kw">for</span> md_doc <span class="kw">in</span> md_docs:
+        sub_docs = char_splitter.create_documents([md_doc.page_content])
+        <span class="kw">for</span> i, sub_doc <span class="kw">in</span> enumerate(sub_docs):
+            chunks.append(Chunk(
+                text=sub_doc.page_content,
+                source=filename,
+                chunk_index=len(chunks),
+                start_char=sub_doc.metadata.get(<span class="str">"start_index"</span>, -<span class="num">1</span>),
+                metadata=md_doc.metadata,
+            ))
+    <span class="kw">return</span> chunks
+
+
+<span class="kw">def</span> <span class="fn">build_chunks</span>(corpus_dir: Path = CORPUS_DIR) -&gt; list[Chunk]:
+    <span class="cm">"""Top-level pipeline entry point: load every document and chunk them all."""</span>
+    all_chunks = []
+    <span class="kw">for</span> filename, text <span class="kw">in</span> load_corpus(corpus_dir):
+        all_chunks.extend(chunk_document(filename, text))
+    <span class="kw">return</span> all_chunks
+
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    chunks = build_chunks()
+    print(f<span class="str">"Total chunks: {len(chunks)}"</span>)
+    <span class="kw">for</span> c <span class="kw">in</span> chunks:
+        print(f<span class="str">"[{c.source} #{c.chunk_index} @{c.start_char}]\n{c.text}\n"</span>)</pre>
+    </div>
+
+    <!-- ── gemini_client.py ───────────────────────── -->
+    <div class="file-card" id="gemini_client">
+      <div class="file-header">
+        <span class="dot c-core"></span>
+        <span class="name">gemini_client.py</span>
+        <span class="tag">Core</span>
+        <span class="file-desc">Shared Google Gemini client — auth in one place</span>
+      </div>
+      <pre><span class="cm">"""Shared Google Gemini client (new `google-genai` SDK).
+
+Configured once here and imported everywhere, so auth lives in one place.
+Replaces the deprecated `google-generativeai` package.
+"""</span>
+<span class="kw">import</span> os
+<span class="kw">from</span> dotenv <span class="kw">import</span> load_dotenv
+<span class="kw">from</span> google <span class="kw">import</span> genai
+
+load_dotenv()
+client = genai.Client(api_key=os.environ[<span class="str">"GOOGLE_API_KEY"</span>])</pre>
+    </div>
+
+    <!-- ── llm_utils.py ──────────────────────────── -->
+    <div class="file-card" id="llm_utils">
+      <div class="file-header">
+        <span class="dot c-core"></span>
+        <span class="name">llm_utils.py</span>
+        <span class="tag">Core</span>
+        <span class="file-desc">Exponential-backoff retry wrapper for Gemini calls</span>
+      </div>
+      <pre><span class="kw">import</span> time
+<span class="kw">from</span> google.api_core.exceptions <span class="kw">import</span> ResourceExhausted
+
+<span class="kw">def</span> <span class="fn">with_retry</span>(fn, max_retries: int = <span class="num">5</span>, base_delay: float = <span class="num">2.0</span>):
+    <span class="kw">for</span> attempt <span class="kw">in</span> range(max_retries):
+        <span class="kw">try</span>:
+            <span class="kw">return</span> fn()
+        <span class="kw">except</span> ResourceExhausted:
+            <span class="kw">if</span> attempt == max_retries - <span class="num">1</span>:
+                <span class="kw">raise</span>
+            delay = base_delay * (<span class="num">2</span> ** attempt)
+            print(f<span class="str">"  Rate limited, waiting {delay:.0f}s..."</span>)
+            time.sleep(delay)</pre>
+    </div>
+
+    <!-- ── dense_index.py ───────────────────────── -->
+    <div class="file-card" id="dense_index">
+      <div class="file-header">
+        <span class="dot c-index"></span>
+        <span class="name">dense_index.py</span>
+        <span class="tag">Index</span>
+        <span class="file-desc">Gemini embeddings → numpy matrix · cosine-similarity search · disk cache</span>
+      </div>
+      <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> google.genai <span class="kw">import</span> types
+<span class="kw">from</span> gemini_client <span class="kw">import</span> client
+<span class="kw">from</span> chunking <span class="kw">import</span> build_chunks, Chunk
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+<span class="kw">import</span> hashlib
+<span class="kw">import</span> pickle
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+
+EMBEDDING_MODEL = <span class="str">"models/gemini-embedding-2"</span>
+
+CACHE_DIR  = Path(__file__).resolve().parent.parent / <span class="str">"data"</span> / <span class="str">"index"</span>
+CACHE_PATH = CACHE_DIR / <span class="str">"embed_cache.pkl"</span>
+
+<span class="kw">def</span> <span class="fn">_load_cache</span>() -&gt; dict:
+    <span class="kw">if</span> CACHE_PATH.exists():
+        <span class="kw">with</span> open(CACHE_PATH, <span class="str">"rb"</span>) <span class="kw">as</span> f:
+            <span class="kw">return</span> pickle.load(f)
+    <span class="kw">return</span> {}
+
+_embed_cache = _load_cache()
+
+<span class="kw">def</span> <span class="fn">_cache_key</span>(text: str, task_type: str) -&gt; str:
+    raw = f<span class="str">"{EMBEDDING_MODEL}:{task_type}:{text}"</span>
+    <span class="kw">return</span> hashlib.sha256(raw.encode(<span class="str">"utf-8"</span>)).hexdigest()
+
+<span class="kw">def</span> <span class="fn">_save_cache</span>() -&gt; None:
+    CACHE_DIR.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+    <span class="kw">with</span> open(CACHE_PATH, <span class="str">"wb"</span>) <span class="kw">as</span> f:
+        pickle.dump(_embed_cache, f)
+
+
+<span class="kw">def</span> <span class="fn">embed_text</span>(text: str, task_type: str) -&gt; list[float]:
+    <span class="cm">"""Call the Gemini embedding API for one piece of text, with a persistent cache.
+    task_type must be RETRIEVAL_DOCUMENT at index time and RETRIEVAL_QUERY at search time."""</span>
+    key = _cache_key(text, task_type)
+    <span class="kw">if</span> key <span class="kw">in</span> _embed_cache:
+        <span class="kw">return</span> _embed_cache[key]
+    result = client.models.embed_content(
+        model=EMBEDDING_MODEL, contents=text,
+        config=types.EmbedContentConfig(task_type=task_type),
+    )
+    vec = result.embeddings[<span class="num">0</span>].values
+    _embed_cache[key] = vec
+    <span class="kw">return</span> vec
+
+
+<span class="kw">def</span> <span class="fn">build_index</span>(chunks: list[Chunk]) -&gt; tuple[np.ndarray, list[Chunk]]:
+    <span class="cm">"""Embed all chunks as documents and return a float32 matrix of shape
+    (num_chunks, embedding_dim) paired with the chunks list."""</span>
+    embeddings = []
+    <span class="kw">for</span> chunk <span class="kw">in</span> chunks:
+        embeddings.append(with_retry(
+            <span class="kw">lambda</span>: embed_text(chunk.text, task_type=<span class="str">"RETRIEVAL_DOCUMENT"</span>)))
+    matrix = np.array(embeddings, dtype=np.float32)
+    _save_cache()
+    <span class="kw">return</span> matrix, chunks
+
+
+<span class="kw">def</span> <span class="fn">search</span>(query: str, matrix: np.ndarray, chunks: list[Chunk],
+           top_k: int = <span class="num">5</span>) -&gt; list[tuple[float, Chunk]]:
+    <span class="cm">"""Embed the query and return top_k chunks ranked by cosine similarity via dot product."""</span>
+    query_vec   = np.array(with_retry(
+        <span class="kw">lambda</span>: embed_text(query, task_type=<span class="str">"RETRIEVAL_QUERY"</span>)), dtype=np.float32)
+    scores      = matrix @ query_vec
+    top_indices = np.argsort(scores)[::-<span class="num">1</span>][:top_k]
+    <span class="kw">return</span> [(float(scores[i]), chunks[i]) <span class="kw">for</span> i <span class="kw">in</span> top_indices]
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    chunks = build_chunks()
+    print(f<span class="str">"Embedding {len(chunks)} chunks..."</span>)
+    matrix, chunks = build_index(chunks)
+    print(f<span class="str">"Index shape: {matrix.shape}"</span>)
+    results = search(<span class="str">"what does error code E-4021 mean"</span>, matrix, chunks)
+    <span class="kw">for</span> score, chunk <span class="kw">in</span> results:
+        print(f<span class="str">"\n[{score:.3f}] {chunk.source} #{chunk.chunk_index}"</span>)
+        print(chunk.text[:<span class="num">200</span>])</pre>
+    </div>
+
+    <!-- ── sparse_index.py ──────────────────────── -->
+    <div class="file-card" id="sparse_index">
+      <div class="file-header">
+        <span class="dot c-index"></span>
+        <span class="name">sparse_index.py</span>
+        <span class="tag">Index</span>
+        <span class="file-desc">BM25 keyword index via rank-bm25</span>
+      </div>
+      <pre><span class="kw">from</span> rank_bm25 <span class="kw">import</span> BM25Okapi
+<span class="kw">from</span> chunking <span class="kw">import</span> build_chunks, Chunk
+<span class="kw">import</span> re
+
+<span class="kw">def</span> <span class="fn">tokenize</span>(text: str) -&gt; list[str]:
+    <span class="cm">"""Lowercase and split text into word tokens.
+    Must be called identically at index time and query time."""</span>
+    <span class="kw">return</span> re.findall(<span class="str">r"\w+"</span>, text.lower())
+
+<span class="kw">def</span> <span class="fn">build_bm25_index</span>(chunks: list[Chunk]) -&gt; BM25Okapi:
+    <span class="cm">"""Tokenize all chunks and build a BM25Okapi index,
+    precomputing IDF scores and document lengths."""</span>
+    tokenized = [tokenize(chunk.text) <span class="kw">for</span> chunk <span class="kw">in</span> chunks]
+    <span class="kw">return</span> BM25Okapi(tokenized)
+
+<span class="kw">def</span> <span class="fn">search</span>(query: str, bm25: BM25Okapi, chunks: list[Chunk],
+           top_k: int = <span class="num">5</span>) -&gt; list[tuple[float, Chunk]]:
+    <span class="cm">"""Score all chunks against the query using BM25 exact-term matching.
+    Chunks with no token overlap score exactly zero."""</span>
+    tokens = tokenize(query)
+    scores = bm25.get_scores(tokens)
+    ranked = sorted(enumerate(scores), key=<span class="kw">lambda</span> x: x[<span class="num">1</span>], reverse=<span class="kw">True</span>)
+    <span class="kw">return</span> [(float(score), chunks[i]) <span class="kw">for</span> i, score <span class="kw">in</span> ranked[:top_k]]
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    chunks = build_chunks()
+    bm25   = build_bm25_index(chunks)
+    results = search(<span class="str">"what does error code E-4021 mean"</span>, bm25, chunks)
+    <span class="kw">for</span> score, chunk <span class="kw">in</span> results:
+        print(f<span class="str">"\n[{score:.3f}] {chunk.source} #{chunk.chunk_index}"</span>)
+        print(chunk.text[:<span class="num">200</span>])</pre>
+    </div>
+
+    <!-- ── fusion.py ────────────────────────────── -->
+    <div class="file-card" id="fusion">
+      <div class="file-header">
+        <span class="dot c-search"></span>
+        <span class="name">fusion.py</span>
+        <span class="tag">Search</span>
+        <span class="file-desc">Reciprocal Rank Fusion — merges dense + BM25 result lists</span>
+      </div>
+      <pre><span class="kw">from</span> chunking <span class="kw">import</span> Chunk
+RRF_K = <span class="num">60</span>
+
+<span class="kw">def</span> <span class="fn">reciprocal_rank_fusion</span>(
+        result_lists: list[list[tuple[float, Chunk]]],
+        top_k: int = <span class="num">5</span>) -&gt; list[tuple[float, Chunk]]:
+    <span class="cm">"""Fuse multiple ranked result lists using Reciprocal Rank Fusion.
+    Ignores raw scores — only ranks matter, making it safe to combine
+    dense and BM25 results."""</span>
+    scores:    dict[str, float] = {}
+    chunk_map: dict[str, Chunk] = {}
+    <span class="kw">for</span> results <span class="kw">in</span> result_lists:
+        <span class="kw">for</span> rank, (score, chunk) <span class="kw">in</span> enumerate(results):
+            key = f<span class="str">"{chunk.source}#{chunk.chunk_index}"</span>
+            scores[key]    = scores.get(key, <span class="num">0.0</span>) + <span class="num">1.0</span> / (RRF_K + rank)
+            chunk_map[key] = chunk
+    ranked = sorted(scores.items(), key=<span class="kw">lambda</span> x: x[<span class="num">1</span>], reverse=<span class="kw">True</span>)
+    <span class="kw">return</span> [(score, chunk_map[key]) <span class="kw">for</span> key, score <span class="kw">in</span> ranked[:top_k]]
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="kw">import</span> sys
+    sys.path.insert(<span class="num">0</span>, <span class="str">"src"</span>)
+    <span class="kw">from</span> dense_index <span class="kw">import</span> build_index, search <span class="kw">as</span> dense_search
+    <span class="kw">from</span> sparse_index <span class="kw">import</span> build_bm25_index, search <span class="kw">as</span> bm25_search
+    <span class="kw">from</span> chunking <span class="kw">import</span> build_chunks
+
+    chunks = build_chunks()
+    matrix, chunks = build_index(chunks)
+    bm25 = build_bm25_index(chunks)
+
+    query = <span class="str">"what does error code E-4021 mean"</span>
+    dense_results = dense_search(query, matrix, chunks, top_k=<span class="num">9</span>)
+    bm25_results  = bm25_search(query, bm25, chunks, top_k=<span class="num">9</span>)
+    fused = reciprocal_rank_fusion([dense_results, bm25_results])
+
+    print(<span class="str">"FUSED RESULTS:"</span>)
+    <span class="kw">for</span> score, chunk <span class="kw">in</span> fused:
+        print(f<span class="str">"[{score:.4f}] {chunk.source} #{chunk.chunk_index}"</span>)</pre>
+    </div>
+
+    <!-- ── rerank.py ─────────────────────────────── -->
+    <div class="file-card" id="rerank">
+      <div class="file-header">
+        <span class="dot c-search"></span>
+        <span class="name">rerank.py</span>
+        <span class="tag">Search</span>
+        <span class="file-desc">LLM cross-encoder reranking via Gemini Flash Lite</span>
+      </div>
+      <pre><span class="kw">from</span> google.genai <span class="kw">import</span> types
+<span class="kw">from</span> gemini_client <span class="kw">import</span> client
+<span class="kw">from</span> chunking <span class="kw">import</span> Chunk
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+<span class="kw">from</span> concurrent.futures <span class="kw">import</span> ThreadPoolExecutor
+
+
+RERANK_MODEL = <span class="str">"models/gemini-3.1-flash-lite"</span>
+
+
+<span class="kw">def</span> <span class="fn">score_chunk</span>(query: str, chunk: Chunk) -&gt; float:
+    prompt = (
+        f<span class="str">"Rate how well the passage answers the query, on a scale of 0 to 10.\n"</span>
+        f<span class="str">"Respond with ONLY a single number, nothing else.\n\n"</span>
+        f<span class="str">"Query: {query}\n\n"</span>
+        f<span class="str">"Passage: {chunk.text}"</span>
+    )
+    response = with_retry(<span class="kw">lambda</span>: client.models.generate_content(
+        model=RERANK_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(temperature=<span class="num">0</span>, max_output_tokens=<span class="num">5</span>)))
+    <span class="kw">try</span>:
+        <span class="kw">return</span> float(response.text.strip())
+    <span class="kw">except</span> (ValueError, AttributeError):
+        <span class="kw">return</span> <span class="num">0.0</span>
+
+<span class="kw">def</span> <span class="fn">rerank</span>(query: str, candidates: list[tuple[float, Chunk]],
+           top_k: int = <span class="num">5</span>) -&gt; list[tuple[float, Chunk]]:
+    <span class="cm">"""Re-score each candidate by having Gemini read the query and chunk together
+    (cross-encoder style), then return the top_k by fresh relevance score.
+    Discards incoming RRF scores."""</span>
+    candidates_chunks = [chunk <span class="kw">for</span> _, chunk <span class="kw">in</span> candidates]
+    <span class="kw">with</span> ThreadPoolExecutor(max_workers=<span class="num">5</span>) <span class="kw">as</span> executor:
+        scores = list(executor.map(
+            <span class="kw">lambda</span> chunk: score_chunk(query, chunk), candidates_chunks))
+    scored = list(zip(scores, candidates_chunks))
+    scored.sort(key=<span class="kw">lambda</span> x: x[<span class="num">0</span>], reverse=<span class="kw">True</span>)
+    <span class="kw">return</span> scored[:top_k]
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="kw">from</span> chunking <span class="kw">import</span> build_chunks
+    <span class="kw">from</span> dense_index <span class="kw">import</span> build_index, search <span class="kw">as</span> dense_search
+    <span class="kw">from</span> sparse_index <span class="kw">import</span> build_bm25_index, search <span class="kw">as</span> bm25_search
+    <span class="kw">from</span> fusion <span class="kw">import</span> reciprocal_rank_fusion
+
+    chunks        = build_chunks()
+    matrix, chunks = build_index(chunks)
+    bm25          = build_bm25_index(chunks)
+
+    query         = <span class="str">"how do I fix E-4021"</span>
+    dense_results = dense_search(query, matrix, chunks, top_k=<span class="num">9</span>)
+    bm25_results  = bm25_search(query, bm25, chunks, top_k=<span class="num">9</span>)
+    fused         = reciprocal_rank_fusion([dense_results, bm25_results], top_k=<span class="num">5</span>)
+
+    print(<span class="str">"BEFORE reranking (fusion order):"</span>)
+    <span class="kw">for</span> score, chunk <span class="kw">in</span> fused:
+        print(f<span class="str">"  [{score:.4f}] {chunk.source} #{chunk.chunk_index}"</span>)
+
+    reranked = rerank(query, fused, top_k=<span class="num">5</span>)
+    print(<span class="str">"\nAFTER reranking (cross-encoder order):"</span>)
+    <span class="kw">for</span> score, chunk <span class="kw">in</span> reranked:
+        print(f<span class="str">"  [{score:.1f}] {chunk.source} #{chunk.chunk_index}"</span>)</pre>
+    </div>
+
+    <!-- ── generation.py ────────────────────────── -->
+    <div class="file-card" id="generation">
+      <div class="file-header">
+        <span class="dot c-llm"></span>
+        <span class="name">generation.py</span>
+        <span class="tag">Generation</span>
+        <span class="file-desc">Grounded answer generation with inline citations</span>
+      </div>
+      <pre><span class="kw">from</span> google.genai <span class="kw">import</span> types
+<span class="kw">from</span> gemini_client <span class="kw">import</span> client
+<span class="kw">from</span> chunking <span class="kw">import</span> Chunk
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+
+GENERATION_MODEL = <span class="str">"models/gemini-2.0-flash"</span>
+
+<span class="kw">def</span> <span class="fn">format_context</span>(chunks: list[Chunk]) -&gt; str:
+    blocks = []
+    <span class="kw">for</span> i, chunk <span class="kw">in</span> enumerate(chunks, start=<span class="num">1</span>):
+        blocks.append(f<span class="str">"[{i}] ({chunk.source} #{chunk.chunk_index}) {chunk.text}"</span>)
+    <span class="kw">return</span> <span class="str">"\n\n"</span>.join(blocks)
+
+<span class="kw">def</span> <span class="fn">generate_answer</span>(query: str, chunks: list[Chunk]) -&gt; str:
+    <span class="cm">"""Generate a grounded, citation-tagged answer using ONLY the provided chunks.
+    Refuses if the context lacks the answer."""</span>
+    context = format_context(chunks)
+    prompt = (
+        <span class="str">"You are a precise assistant. Answer the question using ONLY the numbered "</span>
+        <span class="str">"context passages below. Follow these rules strictly:\n"</span>
+        <span class="str">"1. Use ONLY information stated in the passages. Do NOT use prior knowledge.\n"</span>
+        <span class="str">"2. After each sentence, cite the passage number(s) it came from, like [1] or [1][2].\n"</span>
+        <span class="str">"3. If the passages do not contain the answer, reply exactly: "</span>
+        <span class="str">"\"I don't have enough information to answer that.\"\n\n"</span>
+        f<span class="str">"Context:\n{context}\n\n"</span>
+        f<span class="str">"Question: {query}\n\n"</span>
+        <span class="str">"Answer:"</span>
+    )
+    response = with_retry(<span class="kw">lambda</span>: client.models.generate_content(
+        model=GENERATION_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(temperature=<span class="num">0</span>),
+    ))
+    <span class="kw">return</span> response.text.strip()
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="kw">from</span> chunking <span class="kw">import</span> build_chunks
+    <span class="kw">from</span> dense_index <span class="kw">import</span> build_index, search <span class="kw">as</span> dense_search
+    <span class="kw">from</span> sparse_index <span class="kw">import</span> build_bm25_index, search <span class="kw">as</span> bm25_search
+    <span class="kw">from</span> fusion <span class="kw">import</span> reciprocal_rank_fusion
+    <span class="kw">from</span> rerank <span class="kw">import</span> rerank
+
+    chunks        = build_chunks()
+    matrix, chunks = build_index(chunks)
+    bm25          = build_bm25_index(chunks)
+
+    query         = <span class="str">"how do I fix E-4021?"</span>
+    dense_results = dense_search(query, matrix, chunks, top_k=<span class="num">9</span>)
+    bm25_results  = bm25_search(query, bm25, chunks, top_k=<span class="num">9</span>)
+    fused         = reciprocal_rank_fusion([dense_results, bm25_results], top_k=<span class="num">5</span>)
+    reranked      = rerank(query, fused, top_k=<span class="num">3</span>)
+
+    answer = generate_answer(query, [chunk <span class="kw">for</span> _, chunk <span class="kw">in</span> reranked])
+    print(f<span class="str">"Q: {query}\n"</span>)
+    print(f<span class="str">"A: {answer}"</span>)</pre>
+    </div>
+
+    <!-- ── verification.py ──────────────────────── -->
+    <div class="file-card" id="verification">
+      <div class="file-header">
+        <span class="dot c-llm"></span>
+        <span class="name">verification.py</span>
+        <span class="tag">Generation</span>
+        <span class="file-desc">Claim extraction + batched LLM fact-checking</span>
+      </div>
+      <pre><span class="kw">import</span> re
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> google.genai <span class="kw">import</span> types
+<span class="kw">from</span> gemini_client <span class="kw">import</span> client
+<span class="kw">from</span> chunking <span class="kw">import</span> Chunk
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+
+VERIFIER_MODEL = <span class="str">"models/gemini-2.0-flash-lite"</span>
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">Claim</span>:
+    text:      str           <span class="cm"># one sentence from the answer</span>
+    citations: list[int]     <span class="cm"># the [n] numbers attached to it</span>
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">ClaimVerdict</span>:
+    claim:     Claim
+    supported: bool
+    reason:    str
+
+
+<span class="kw">def</span> <span class="fn">parse_claims</span>(answer: str) -&gt; list[Claim]:
+    sentences = re.split(<span class="str">r'(?&lt;=[.!?])\s+'</span>, answer.strip())
+    claims = []
+    <span class="kw">for</span> sentence <span class="kw">in</span> sentences:
+        citations = [int(n) <span class="kw">for</span> n <span class="kw">in</span> re.findall(<span class="str">r'\[(\d+)\]'</span>, sentence)]
+        <span class="kw">if</span> sentence.strip():
+            claims.append(Claim(text=sentence.strip(), citations=citations))
+    <span class="kw">return</span> claims
+
+<span class="kw">def</span> <span class="fn">verify_claim</span>(claim_text: str, chunk: Chunk) -&gt; bool:
+    prompt = (
+        <span class="str">"You are a strict fact-checker. Determine whether the CLAIM is fully "</span>
+        <span class="str">"supported by the PASSAGE. Answer with ONLY 'YES' or 'NO'.\n"</span>
+        <span class="str">"- Answer YES only if the passage directly states or clearly implies the claim.\n"</span>
+        <span class="str">"- Answer NO if the claim adds information not in the passage, even if it sounds plausible.\n\n"</span>
+        f<span class="str">"PASSAGE: {chunk.text}\n\n"</span>
+        f<span class="str">"CLAIM: {claim_text}\n\n"</span>
+        <span class="str">"Supported?"</span>
+    )
+    response = with_retry(<span class="kw">lambda</span>: client.models.generate_content(
+        model=VERIFIER_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(temperature=<span class="num">0</span>, max_output_tokens=<span class="num">5</span>),
+    ))
+    <span class="kw">try</span>:
+        verdict = response.text.strip().upper()
+        <span class="kw">return</span> verdict.startswith(<span class="str">"YES"</span>)
+    <span class="kw">except</span> (ValueError, AttributeError):
+        <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">def</span> <span class="fn">_batch_verify</span>(items: list[tuple[int, Claim, str]]) -&gt; dict[int, bool]:
+    <span class="cm">"""Verify many (claim, evidence) pairs in ONE LLM call.
+    Returns {index: supported}. Missing/garbled lines default to False (fail-closed)."""</span>
+    blocks = [
+        f<span class="str">"CLAIM {i}:\n{claim.text}\nEVIDENCE {i}:\n{evidence}"</span>
+        <span class="kw">for</span> i, claim, evidence <span class="kw">in</span> items
+    ]
+    prompt = (
+        <span class="str">"You are a strict fact-checker. For each numbered CLAIM, decide whether it is FULLY "</span>
+        <span class="str">"supported by its EVIDENCE. Supported only if the evidence directly states or clearly "</span>
+        <span class="str">"implies the claim; if the claim adds information not in the evidence, answer NO.\n"</span>
+        <span class="str">"Respond with exactly one line per claim in the form '&lt;number&gt;: YES' or '&lt;number&gt;: NO'. "</span>
+        <span class="str">"No other text.\n\n"</span>
+        + <span class="str">"\n\n"</span>.join(blocks)
+    )
+    response = with_retry(<span class="kw">lambda</span>: client.models.generate_content(
+        model=VERIFIER_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(temperature=<span class="num">0</span>, max_output_tokens=<span class="num">200</span>)))
+    results: dict[int, bool] = {}
+    <span class="kw">try</span>:
+        <span class="kw">for</span> line <span class="kw">in</span> response.text.strip().splitlines():
+            m = re.match(<span class="str">r"\s*(\d+)\s*:\s*(YES|NO)"</span>, line.strip(), re.IGNORECASE)
+            <span class="kw">if</span> m:
+                results[int(m.group(<span class="num">1</span>))] = m.group(<span class="num">2</span>).upper() == <span class="str">"YES"</span>
+    <span class="kw">except</span> (AttributeError, ValueError):
+        <span class="kw">pass</span>
+    <span class="kw">return</span> results
+
+
+<span class="kw">def</span> <span class="fn">verify_answer</span>(answer: str, chunks: list[Chunk]) -&gt; list[ClaimVerdict]:
+    <span class="cm">"""Verify every claim in the answer against its cited chunk(s) in ONE batched LLM call."""</span>
+    claims   = parse_claims(answer)
+    verdicts: list[ClaimVerdict | <span class="kw">None</span>] = [<span class="kw">None</span>] * len(claims)
+    to_check: list[tuple[int, Claim, str]] = []
+
+    <span class="kw">for</span> i, claim <span class="kw">in</span> enumerate(claims):
+        <span class="kw">if not</span> claim.citations:
+            verdicts[i] = ClaimVerdict(claim, supported=<span class="kw">False</span>, reason=<span class="str">"no citation"</span>)
+            <span class="kw">continue</span>
+        evidence = <span class="str">"\n---\n"</span>.join(
+            chunks[n - <span class="num">1</span>].text <span class="kw">for</span> n <span class="kw">in</span> claim.citations <span class="kw">if</span> <span class="num">0</span> &lt;= n - <span class="num">1</span> &lt; len(chunks)
+        )
+        <span class="kw">if not</span> evidence:
+            verdicts[i] = ClaimVerdict(claim, supported=<span class="kw">False</span>, reason=<span class="str">"cited passage not found"</span>)
+            <span class="kw">continue</span>
+        to_check.append((i, claim, evidence))
+
+    <span class="kw">if</span> to_check:
+        results = _batch_verify(to_check)
+        <span class="kw">for</span> i, claim, _ <span class="kw">in</span> to_check:
+            supported   = results.get(i, <span class="kw">False</span>)
+            verdicts[i] = ClaimVerdict(
+                claim, supported=supported,
+                reason=<span class="str">"supported"</span> <span class="kw">if</span> supported <span class="kw">else</span> <span class="str">"not supported by cited passage"</span>,
+            )
+    <span class="kw">return</span> verdicts</pre>
+    </div>
+
+    <!-- ── engine.py ─────────────────────────────── -->
+    <div class="file-card" id="engine">
+      <div class="file-header">
+        <span class="dot c-core"></span>
+        <span class="name">engine.py</span>
+        <span class="tag">Core</span>
+        <span class="file-desc">RagEngine — orchestrates the full retrieve → rerank → generate → verify pipeline</span>
+      </div>
+      <pre><span class="kw">import</span> time
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> chunking <span class="kw">import</span> build_chunks, chunk_document, Chunk
+<span class="kw">from</span> dense_index <span class="kw">import</span> build_index, embed_text, search <span class="kw">as</span> dense_search
+<span class="kw">from</span> sparse_index <span class="kw">import</span> build_bm25_index, search <span class="kw">as</span> bm25_search
+<span class="kw">from</span> fusion <span class="kw">import</span> reciprocal_rank_fusion
+<span class="kw">from</span> rerank <span class="kw">import</span> rerank
+<span class="kw">from</span> generation <span class="kw">import</span> generate_answer
+<span class="kw">from</span> verification <span class="kw">import</span> verify_answer
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+
+
+<span class="kw">class</span> <span class="cls">RagEngine</span>:
+    <span class="cm">"""Owns the live, mutable index state (chunks + dense matrix + bm25) and
+    orchestrates the full pipeline. One instance lives for the server's lifetime."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.chunks              = build_chunks()
+        self.matrix, self.chunks = build_index(self.chunks)
+        self.bm25                = build_bm25_index(self.chunks)
+
+    <span class="kw">def</span> <span class="fn">query</span>(self, query_text: str, top_k: int = <span class="num">3</span>) -&gt; dict:
+        timings = {}
+
+        t0 = time.perf_counter()
+        dense_results = dense_search(query_text, self.matrix, self.chunks, top_k=len(self.chunks))
+        bm25_results  = bm25_search(query_text, self.bm25, self.chunks, top_k=len(self.chunks))
+        fused         = reciprocal_rank_fusion([dense_results, bm25_results],
+                                               top_k=max(top_k * <span class="num">2</span>, <span class="num">5</span>))
+        timings[<span class="str">"retrieval"</span>] = round((time.perf_counter() - t0) * <span class="num">1000</span>)
+
+        t0 = time.perf_counter()
+        reranked           = rerank(query_text, fused, top_k=top_k)
+        timings[<span class="str">"rerank"</span>]   = round((time.perf_counter() - t0) * <span class="num">1000</span>)
+
+        used_chunks = [chunk <span class="kw">for</span> _, chunk <span class="kw">in</span> reranked]
+        t0 = time.perf_counter()
+        answer               = generate_answer(query_text, used_chunks)
+        timings[<span class="str">"generation"</span>] = round((time.perf_counter() - t0) * <span class="num">1000</span>)
+
+        t0 = time.perf_counter()
+        verdicts                = verify_answer(answer, used_chunks)
+        timings[<span class="str">"verification"</span>] = round((time.perf_counter() - t0) * <span class="num">1000</span>)
+
+        claims = [
+            {<span class="str">"text"</span>: v.claim.text, <span class="str">"citations"</span>: v.claim.citations,
+             <span class="str">"supported"</span>: v.supported, <span class="str">"reason"</span>: v.reason}
+            <span class="kw">for</span> v <span class="kw">in</span> verdicts
+        ]
+        sources = [
+            {<span class="str">"n"</span>: i + <span class="num">1</span>, <span class="str">"source"</span>: chunk.source,
+             <span class="str">"section"</span>: chunk.metadata.get(<span class="str">"h2"</span>, <span class="str">""</span>),
+             <span class="str">"text"</span>: chunk.text, <span class="str">"rerank_score"</span>: score}
+            <span class="kw">for</span> i, (score, chunk) <span class="kw">in</span> enumerate(reranked)
+        ]
+        <span class="kw">return</span> {
+            <span class="str">"query"</span>:      query_text,
+            <span class="str">"answer"</span>:     answer,
+            <span class="str">"claims"</span>:     claims,
+            <span class="str">"sources"</span>:    sources,
+            <span class="str">"timings_ms"</span>: timings,
+        }
+
+    <span class="kw">def</span> <span class="fn">add_documents</span>(self, filename: str, text: str) -&gt; dict:
+        <span class="cm">"""Chunk + embed a new document and merge it into the live index."""</span>
+        new_chunks = chunk_document(filename, text)
+        <span class="kw">if not</span> new_chunks:
+            <span class="kw">return</span> {<span class="str">"filename"</span>: filename, <span class="str">"chunks_added"</span>: <span class="num">0</span>,
+                    <span class="str">"total_chunks"</span>: len(self.chunks)}
+
+        new_vectors = [
+            with_retry(<span class="kw">lambda</span> c=c: embed_text(c.text, task_type=<span class="str">"RETRIEVAL_DOCUMENT"</span>))
+            <span class="kw">for</span> c <span class="kw">in</span> new_chunks
+        ]
+        new_matrix = np.array(new_vectors, dtype=np.float32)
+
+        self.chunks = self.chunks + new_chunks
+        self.matrix = np.vstack([self.matrix, new_matrix])
+        self.bm25   = build_bm25_index(self.chunks)
+
+        <span class="kw">return</span> {<span class="str">"filename"</span>: filename, <span class="str">"chunks_added"</span>: len(new_chunks),
+                <span class="str">"total_chunks"</span>: len(self.chunks)}</pre>
+    </div>
+
+    <!-- ── api.py ────────────────────────────────── -->
+    <div class="file-card" id="api">
+      <div class="file-header">
+        <span class="dot c-api"></span>
+        <span class="name">api.py</span>
+        <span class="tag">API</span>
+        <span class="file-desc">FastAPI server — /api/health · /api/query · /api/ingest</span>
+      </div>
+      <pre><span class="kw">import</span> os
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, UploadFile, File, HTTPException
+<span class="kw">from</span> fastapi.middleware.cors <span class="kw">import</span> CORSMiddleware
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> engine <span class="kw">import</span> RagEngine
+
+<span class="cm"># Canned response for demo mode (set env RAG_DEMO=1) so the frontend can be
+# built and demoed without spending Gemini quota.</span>
+DEMO_RESPONSE = {
+    <span class="str">"answer"</span>: (
+        <span class="str">"To resolve E-4021, power cycle the modem, wait sixty seconds, and then "</span>
+        <span class="str">"restart the Aurora X1 [1]. Contact support if the problem persists [1]."</span>
+    ),
+    <span class="str">"claims"</span>: [
+        {<span class="str">"text"</span>: <span class="str">"To resolve E-4021, power cycle the modem..."</span>,
+         <span class="str">"citations"</span>: [<span class="num">1</span>], <span class="str">"supported"</span>: <span class="kw">True</span>,  <span class="str">"reason"</span>: <span class="str">"supported"</span>},
+        {<span class="str">"text"</span>: <span class="str">"Contact support if the problem persists [1]."</span>,
+         <span class="str">"citations"</span>: [<span class="num">1</span>], <span class="str">"supported"</span>: <span class="kw">False</span>, <span class="str">"reason"</span>: <span class="str">"not supported by cited passage"</span>},
+    ],
+    <span class="str">"sources"</span>: [
+        {<span class="str">"n"</span>: <span class="num">1</span>, <span class="str">"source"</span>: <span class="str">"aurora_router_manual.md"</span>, <span class="str">"section"</span>: <span class="str">"Error Codes"</span>,
+         <span class="str">"text"</span>: <span class="str">"Error code E-4021 means the router could not obtain an IP address..."</span>,
+         <span class="str">"rerank_score"</span>: <span class="num">1.0</span>},
+    ],
+    <span class="str">"timings_ms"</span>: {<span class="str">"retrieval"</span>: <span class="num">180</span>, <span class="str">"rerank"</span>: <span class="num">1100</span>,
+                  <span class="str">"generation"</span>: <span class="num">1400</span>, <span class="str">"verification"</span>: <span class="num">900</span>},
+    <span class="str">"degraded"</span>: <span class="kw">False</span>,
+}
+
+engine: RagEngine | <span class="kw">None</span> = <span class="kw">None</span>
+
+<span class="kw">class</span> <span class="cls">QueryRequest</span>(BaseModel):
+    query: str
+    top_k: int = <span class="num">3</span>
+
+
+<span class="dec">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: FastAPI):
+    <span class="kw">global</span> engine
+    print(<span class="str">"Building index (one-time startup)..."</span>)
+    engine = RagEngine()
+    print(f<span class="str">"Index ready: {len(engine.chunks)} chunks"</span>)
+    <span class="kw">yield</span>
+    print(<span class="str">"Shutting down."</span>)
+
+app = FastAPI(title=<span class="str">"Hybrid RAG API"</span>, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[<span class="str">"http://localhost:4200"</span>],
+    allow_methods=[<span class="str">"*"</span>],
+    allow_headers=[<span class="str">"*"</span>],
+)
+
+<span class="dec">@app.get</span>(<span class="str">"/api/health"</span>)
+<span class="kw">def</span> <span class="fn">health</span>():
+    <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"ok"</span>, <span class="str">"chunks"</span>: len(engine.chunks)}
+
+<span class="dec">@app.post</span>(<span class="str">"/api/query"</span>)
+<span class="kw">def</span> <span class="fn">query</span>(request: QueryRequest):
+    <span class="kw">if</span> os.getenv(<span class="str">"RAG_DEMO"</span>) == <span class="str">"1"</span>:
+        <span class="kw">return</span> {<span class="str">"query"</span>: request.query, **DEMO_RESPONSE}
+    <span class="kw">if</span> engine <span class="kw">is</span> <span class="kw">None</span>:
+        <span class="kw">raise</span> HTTPException(status_code=<span class="num">503</span>, detail=<span class="str">"Index not ready"</span>)
+    <span class="kw">return</span> engine.query(request.query, top_k=request.top_k)
+
+<span class="dec">@app.post</span>(<span class="str">"/api/ingest"</span>)
+<span class="kw">async def</span> <span class="fn">ingest</span>(file: UploadFile = File(...)):
+    <span class="kw">if</span> engine <span class="kw">is</span> <span class="kw">None</span>:
+        <span class="kw">raise</span> HTTPException(status_code=<span class="num">503</span>, detail=<span class="str">"Index not ready"</span>)
+    <span class="kw">if not</span> file.filename.lower().endswith((<span class="str">".md"</span>, <span class="str">".txt"</span>)):
+        <span class="kw">raise</span> HTTPException(status_code=<span class="num">400</span>, detail=<span class="str">"Only .md or .txt files are supported"</span>)
+    raw = <span class="kw">await</span> file.read()
+    <span class="kw">try</span>:
+        text = raw.decode(<span class="str">"utf-8"</span>)
+    <span class="kw">except</span> UnicodeDecodeError:
+        <span class="kw">raise</span> HTTPException(status_code=<span class="num">400</span>, detail=<span class="str">"File must be UTF-8 text"</span>)
+    <span class="kw">return</span> engine.add_documents(file.filename, text)</pre>
+    </div>
+
+    <!-- ── evaluate.py ───────────────────────────── -->
+    <div class="file-card" id="evaluate">
+      <div class="file-header">
+        <span class="dot c-eval"></span>
+        <span class="name">evaluate.py</span>
+        <span class="tag">Eval</span>
+        <span class="file-desc">Hand-written eval set · Recall@k and MRR metrics</span>
+      </div>
+      <pre><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">EvalExample</span>:
+    query:              str
+    relevant_chunk_ids: set[str]   <span class="cm"># e.g. {"aurora_router_manual.md#3"}</span>
+
+EVAL_SET = [
+    EvalExample(<span class="str">"how do I fix error E-4021?"</span>,                  {<span class="str">"aurora_router_manual.md#3"</span>}),
+    EvalExample(<span class="str">"what does a solid amber light mean?"</span>,            {<span class="str">"aurora_router_manual.md#2"</span>}),
+    EvalExample(<span class="str">"my router can't get an IP address from the modem"</span>, {<span class="str">"aurora_router_manual.md#3"</span>}),
+    EvalExample(<span class="str">"what is a mesh network?"</span>,                        {<span class="str">"wifi_concepts.md#1"</span>}),
+    EvalExample(<span class="str">"why is the wifi weak in my back bedroom?"</span>,        {<span class="str">"wifi_concepts.md#0"</span>}),
+]
+
+<span class="kw">def</span> <span class="fn">chunk_id</span>(chunk) -&gt; str:
+    <span class="kw">return</span> f<span class="str">"{chunk.source}#{chunk.chunk_index}"</span>
+
+<span class="kw">def</span> <span class="fn">recall_at_k</span>(results: list[tuple[float, <span class="str">"Chunk"</span>]],
+                relevant_ids: set[str], k: int) -&gt; float:
+    retrieved_ids = {chunk_id(chunk) <span class="kw">for</span> _, chunk <span class="kw">in</span> results[:k]}
+    <span class="kw">return</span> <span class="num">1.0</span> <span class="kw">if</span> retrieved_ids &amp; relevant_ids <span class="kw">else</span> <span class="num">0.0</span>
+
+<span class="kw">def</span> <span class="fn">reciprocal_rank</span>(results: list[tuple[float, <span class="str">"Chunk"</span>]],
+                    relevant_ids: set[str]) -&gt; float:
+    <span class="kw">for</span> rank, (_, chunk) <span class="kw">in</span> enumerate(results, start=<span class="num">1</span>):
+        <span class="kw">if</span> chunk_id(chunk) <span class="kw">in</span> relevant_ids:
+            <span class="kw">return</span> <span class="num">1.0</span> / rank
+    <span class="kw">return</span> <span class="num">0.0</span>
+
+<span class="kw">def</span> <span class="fn">evaluate_retrieval</span>(retriever, k: int = <span class="num">5</span>) -&gt; tuple[float, float]:
+    recalls, rrs = [], []
+    <span class="kw">for</span> ex <span class="kw">in</span> EVAL_SET:
+        results = retriever(ex.query)
+        recalls.append(recall_at_k(results, ex.relevant_chunk_ids, k))
+        rrs.append(reciprocal_rank(results, ex.relevant_chunk_ids))
+    <span class="kw">return</span> sum(recalls) / len(recalls), sum(rrs) / len(rrs)
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    <span class="kw">from</span> chunking <span class="kw">import</span> build_chunks
+    <span class="kw">from</span> dense_index <span class="kw">import</span> build_index, search <span class="kw">as</span> dense_search
+    <span class="kw">from</span> sparse_index <span class="kw">import</span> build_bm25_index, search <span class="kw">as</span> bm25_search
+    <span class="kw">from</span> fusion <span class="kw">import</span> reciprocal_rank_fusion
+    <span class="kw">from</span> rerank <span class="kw">import</span> rerank
+
+    chunks         = build_chunks()
+    matrix, chunks = build_index(chunks)
+    bm25           = build_bm25_index(chunks)
+
+    <span class="kw">def</span> <span class="fn">dense_only</span>(q):    <span class="kw">return</span> dense_search(q, matrix, chunks, top_k=<span class="num">9</span>)
+    <span class="kw">def</span> <span class="fn">bm25_only</span>(q):     <span class="kw">return</span> bm25_search(q, bm25, chunks, top_k=<span class="num">9</span>)
+    <span class="kw">def</span> <span class="fn">hybrid</span>(q):
+        <span class="kw">return</span> reciprocal_rank_fusion(
+            [dense_search(q, matrix, chunks, top_k=<span class="num">9</span>),
+             bm25_search(q, bm25, chunks, top_k=<span class="num">9</span>)], top_k=<span class="num">9</span>)
+    <span class="kw">def</span> <span class="fn">hybrid_rerank</span>(q): <span class="kw">return</span> rerank(q, hybrid(q)[:<span class="num">5</span>], top_k=<span class="num">5</span>)
+
+    configs = {
+        <span class="str">"Dense only"</span>:    dense_only,
+        <span class="str">"BM25 only"</span>:     bm25_only,
+        <span class="str">"Hybrid (RRF)"</span>:  hybrid,
+        <span class="str">"Hybrid+Rerank"</span>: hybrid_rerank,
+    }
+
+    print(f<span class="str">"{'Configuration':<16} {'Recall@3':>9} {'MRR':>7}"</span>)
+    print(<span class="str">"-"</span> * <span class="num">34</span>)
+    <span class="kw">for</span> name, retriever <span class="kw">in</span> configs.items():
+        recall, mrr = evaluate_retrieval(retriever, k=<span class="num">3</span>)
+        print(f<span class="str">"{name:<16} {recall:>9.2f} {mrr:>7.3f}"</span>)</pre>
+    </div>
+
+    <!-- ── generate_eval.py ──────────────────────── -->
+    <div class="file-card" id="generate_eval">
+      <div class="file-header">
+        <span class="dot c-eval"></span>
+        <span class="name">generate_eval.py</span>
+        <span class="tag">Eval</span>
+        <span class="file-desc">LLM-generated synthetic eval set — saves to data/eval_set.json</span>
+      </div>
+      <pre><span class="kw">import</span> json
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+<span class="kw">from</span> google.genai <span class="kw">import</span> types
+<span class="kw">from</span> gemini_client <span class="kw">import</span> client
+<span class="kw">from</span> chunking <span class="kw">import</span> build_chunks, Chunk
+<span class="kw">from</span> evaluate <span class="kw">import</span> EvalExample, chunk_id
+<span class="kw">from</span> llm_utils <span class="kw">import</span> with_retry
+<span class="kw">import</span> time
+
+
+GEN_MODEL = <span class="str">"models/gemini-2.0-flash"</span>
+EVAL_PATH = Path(__file__).resolve().parent.parent / <span class="str">"data"</span> / <span class="str">"eval_set.json"</span>
+
+<span class="kw">def</span> <span class="fn">generate_questions</span>(chunk: Chunk, n: int = <span class="num">2</span>) -&gt; list[str]:
+    prompt = (
+        f<span class="str">"Read the passage below and write {n} distinct questions that it directly answers.\n"</span>
+        <span class="str">"Vary the style: make some use exact keywords from the passage, and some paraphrase "
+        "the meaning in different words.\n"</span>
+        <span class="str">"Output ONLY the questions, one per line, with no numbering or extra text.\n\n"</span>
+        f<span class="str">"Passage:\n{chunk.text}"</span>
+    )
+    response = with_retry(<span class="kw">lambda</span>: client.models.generate_content(
+        model=GEN_MODEL, contents=prompt,
+        config=types.GenerateContentConfig(temperature=<span class="num">0.7</span>)))
+    lines     = [line.strip() <span class="kw">for</span> line <span class="kw">in</span> response.text.strip().split(<span class="str">"\n"</span>)]
+    questions = [line <span class="kw">for</span> line <span class="kw">in</span> lines <span class="kw">if</span> line <span class="kw">and</span> line.endswith(<span class="str">"?"</span>)]
+    <span class="kw">return</span> questions
+
+<span class="kw">def</span> <span class="fn">build_synthetic_eval_set</span>(chunks: list[Chunk], n: int = <span class="num">2</span>) -&gt; list[EvalExample]:
+    examples = []
+    <span class="kw">for</span> chunk <span class="kw">in</span> chunks:
+        <span class="kw">for</span> question <span class="kw">in</span> generate_questions(chunk, n):
+            examples.append(EvalExample(
+                query=question, relevant_chunk_ids={chunk_id(chunk)}))
+        time.sleep(<span class="num">4</span>)   <span class="cm"># proactive throttle: stay under 15 req/min</span>
+    <span class="kw">return</span> examples
+
+
+<span class="kw">def</span> <span class="fn">save_eval_set</span>(examples: list[EvalExample], path: Path = EVAL_PATH) -&gt; None:
+    path.parent.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+    data = [
+        {<span class="str">"query"</span>: ex.query,
+         <span class="str">"relevant_chunk_ids"</span>: sorted(ex.relevant_chunk_ids)}
+        <span class="kw">for</span> ex <span class="kw">in</span> examples
+    ]
+    <span class="kw">with</span> open(path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> f:
+        json.dump(data, f, indent=<span class="num">2</span>)
+
+<span class="kw">def</span> <span class="fn">load_eval_set</span>(path: Path = EVAL_PATH) -&gt; list[EvalExample]:
+    <span class="kw">with</span> open(path, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> f:
+        data = json.load(f)
+    <span class="kw">return</span> [
+        EvalExample(query=d[<span class="str">"query"</span>],
+                    relevant_chunk_ids=set(d[<span class="str">"relevant_chunk_ids"</span>]))
+        <span class="kw">for</span> d <span class="kw">in</span> data
+    ]
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    chunks   = build_chunks()
+    print(f<span class="str">"Generating questions for {len(chunks)} chunks..."</span>)
+    eval_set = build_synthetic_eval_set(chunks, n=<span class="num">2</span>)
+    save_eval_set(eval_set)
+    print(f<span class="str">"Generated {len(eval_set)} eval examples -> {EVAL_PATH}\n"</span>)
+    <span class="kw">for</span> ex <span class="kw">in</span> eval_set:
+        print(f<span class="str">"  [{sorted(ex.relevant_chunk_ids)[0]}]  {ex.query}"</span>)</pre>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
